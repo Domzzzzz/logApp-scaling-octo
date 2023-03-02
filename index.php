@@ -1,58 +1,75 @@
 <?php
-	require('config/config.php');
-	require('config/db.php');
+session_start();
 
-	// Check For Submit
-	if(isset($_POST['submit'])){
-		// Get form data
-		$lname = mysqli_real_escape_string($conn,$_POST['lname']);
-		$fname = mysqli_real_escape_string($conn,$_POST['fname']);
-		$address = mysqli_real_escape_string($conn,$_POST['address']);
 
-		$query = "INSERT INTO person(lastname, firstname,address,logdt) VALUES('$lname', '$fname', '$address', now())";
+if (isset($_SESSION['username'])) {
+    $username = $_SESSION['username'];
+    $logged_in = true;
+} else {
+    $logged_in = false;
+}
 
-		if(mysqli_query($conn, $query)){
-      header('Location: '.ROOT_URL.'');
-		} else {
-			echo 'ERROR: '. mysqli_error($conn);
-		}
-	}
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header('Location: index.php');
+    exit();
+}
+
+
+if (isset($_POST['submit'])) {
+    $name = $_POST['name'];
+    $message = $_POST['message'];
+
+   
+    $file = fopen('guestbook.txt', 'a');
+    fwrite($file, "$name: $message\n");
+    fclose($file);
+}
+
+
+$guestbook = file('guestbook.txt');
+
 ?>
 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Guestbook</title>
+</head>
+<body>
+    <h1>Guestbook</h1>
 
-<?php include('inc/header.php'); ?>
-<div class="container">
-<br/>
-  <h2>Registration</h2>
+    <?php if ($logged_in): ?>
+        <p>Welcome, <?php echo $username ?>! <a href="index.php?logout">Logout</a></p>
+    <?php else: ?>
+        <p><a href="login.php">Login</a> to leave a message.</p>
+    <?php endif; ?>
 
-  <form method="POST" action="<?php $_SERVER['PHP_SELF']; ?>" class="was-validated">
-    <div class="form-group">
-      <label for="uname">Last name:</label>
-      <input type="text" class="form-control" id="lname" placeholder="Enter last name" name="lname" required>
-      <div class="valid-feedback">Valid.</div>
-      <div class="invalid-feedback">Please fill out this field.</div>
-    </div>
-    <div class="form-group">
-      <label for="uname">First name:</label>
-      <input type="text" class="form-control" id="fname" placeholder="Enter first name" name="fname" required>
-      <div class="valid-feedback">Valid.</div>
-      <div class="invalid-feedback">Please fill out this field.</div>
-    </div>
-    <div class="form-group">
-      <label for="uname">Address:</label>
-      <input type="text" class="form-control" id="address" placeholder="Enter address" name="address" required>
-      <div class="valid-feedback">Valid.</div>
-      <div class="invalid-feedback">Please fill out this field.</div>
-    </div>
-    <div class="form-group form-check">
-      <label class="form-check-label">
-        <input class="form-check-input" type="checkbox" name="remember" required> I agree on blabla.
-        <div class="valid-feedback">Valid.</div>
-        <div class="invalid-feedback">Check this checkbox to continue.</div>
-      </label>
-    </div>
-    <button type="submit" name="submit" value="Submit" class="btn btn-primary">Submit</button>
-  </form>
-</div>
-<?php include('inc/footer.php'); ?>
+    <?php if (count($guestbook) > 0): ?>
+        <ul>
+            <?php foreach ($guestbook as $entry): ?>
+                <li><?php echo $entry ?></li>
+            <?php endforeach; ?>
+        </ul>
+    <?php else: ?>
+        <p>No messages yet.</p>
+    <?php endif; ?>
 
+    <?php if ($logged_in): ?>
+        <form method="post">
+            <p>
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" value="<?php echo $username ?>" readonly>
+            </p>
+            <p>
+                <label for="message">Message:</label>
+                <textarea id="message" name="message"></textarea>
+            </p>
+            <p>
+                <button type="submit" name="submit">Submit</button>
+            </p>
+        </form>
+    <?php endif; ?>
+</body>
+</html>
